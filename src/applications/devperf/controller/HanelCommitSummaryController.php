@@ -4,6 +4,10 @@ final class HanelCommitSummaryController extends HanelDevPerfController {
     public function shouldAllowPublic() {
         return true;
     }
+    
+    public function getName() {
+        return 'Commit';        
+    }
 
     public function handleRequest(AphrontRequest $request) {
         $controller = id(new PhabricatorApplicationSearchController())

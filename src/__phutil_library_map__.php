@@ -6732,7 +6732,7 @@ phutil_register_library_map(array(
 
     // Hanel Customization
     'HanelDevPerfApplication' => 'PhabricatorApplication',
-    'HanelDevPerfController' => 'PhabricatorAuditController',
-    'HanelCommitSummaryController' => 'PhabricatorAuditController'
+    'HanelDevPerfController' => 'PhabricatorController',
+    'HanelCommitSummaryController' => 'HanelDevPerfController'
   ),
 ));

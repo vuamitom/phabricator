@@ -27,7 +27,7 @@ final class HanelDevPerfApplication extends PhabricatorApplication {
 
     public function getRoutes() {
         return array(
-            '/devperf/' => array(
+            '/devperf/' => array(                
                 '(?:query/(?P<queryKey>[^/]+)/)?' => 'HanelCommitSummaryController',
             ),
         );
