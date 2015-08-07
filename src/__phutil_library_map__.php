@@ -3555,6 +3555,11 @@ phutil_register_library_map(array(
     'UserFindConduitAPIMethod' => 'applications/people/conduit/UserFindConduitAPIMethod.php',
     'UserQueryConduitAPIMethod' => 'applications/people/conduit/UserQueryConduitAPIMethod.php',
     'UserWhoAmIConduitAPIMethod' => 'applications/people/conduit/UserWhoAmIConduitAPIMethod.php',
+
+    // Hanel Customization
+    'HanelDevPerfApplication' => 'applications/devperf/application/HanelDevPerfApplication.php',
+    'HanelDevPerfController' => 'applications/devperf/controller/HanelDevPerfController.php',
+    'HanelCommitSummaryController' => 'applications/devperf/controller/HanelCommitSummaryController.php'
   ),
   'function' => array(
     'celerity_generate_unique_node_id' => 'applications/celerity/api.php',
@@ -7770,5 +7775,10 @@ phutil_register_library_map(array(
     'UserFindConduitAPIMethod' => 'UserConduitAPIMethod',
     'UserQueryConduitAPIMethod' => 'UserConduitAPIMethod',
     'UserWhoAmIConduitAPIMethod' => 'UserConduitAPIMethod',
+
+    // Hanel Customization
+    'HanelDevPerfApplication' => 'PhabricatorApplication',
+    'HanelDevPerfController' => 'PhabricatorController',
+    'HanelCommitSummaryController' => 'HanelDevPerfController'
   ),
 ));
