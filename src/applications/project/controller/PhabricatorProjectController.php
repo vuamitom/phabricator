@@ -69,7 +69,7 @@ abstract class PhabricatorProjectController extends PhabricatorController {
     $nav = new AphrontSideNavFilterView();
     $nav->setIconNav(true);
     $nav->setBaseURI(new PhutilURI($this->getApplicationURI()));
-    $nav->addIcon("profile/{$id}/", $name, null, $picture);
+    $nav->addIcon("profile/{$id}/", $name, null, $picture);    
     $nav->addIcon("board/{$id}/", pht('Workboard'), $board_icon);
 
     $class = 'PhabricatorManiphestApplication';
@@ -83,6 +83,10 @@ abstract class PhabricatorProjectController extends PhabricatorController {
 
     $nav->addIcon("feed/{$id}/", pht('Feed'), 'fa-newspaper-o');
     $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');
+    $nav->addIcon("report/{$id}/", pht('Report'), 'fa-line-chart');
+    //TODO: move it to event listener
+    $nav->addIcon("modules/{$id}/", pht('Modules'), 'fa-database');
+    $nav->addIcon("repositories/{$id}/", pht('Repositories'), 'fa-database');
     $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
 
     return $nav;
