@@ -73,21 +73,34 @@ abstract class PhabricatorProjectController extends PhabricatorController {
     $nav->addIcon("board/{$id}/", pht('Workboard'), $board_icon);
 
     $class = 'PhabricatorManiphestApplication';
+    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
     if (PhabricatorApplication::isClassInstalledForViewer($class, $viewer)) {
       $phid = $project->getPHID();
       $query_uri = urisprintf(
         '/maniphest/?statuses=open()&projects=%s#R',
         $phid);
-      $nav->addIcon(null, pht('Open Tasks'), 'fa-anchor', null, $query_uri);
+      if (!$hss){
+        $nav->addIcon(null, pht('Open Tasks'), 'fa-anchor', null, $query_uri);
+      }
+      else{
+        $nav->addIcon("maniphest/{$id}", pht('Open Tasks'), 'fa-anchor'); 
+      }
     }
 
-    $nav->addIcon("feed/{$id}/", pht('Feed'), 'fa-newspaper-o');
-    $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');
-    $nav->addIcon("report/{$id}/", pht('Report'), 'fa-line-chart');
-    //TODO: move it to event listener
-    $nav->addIcon("modules/{$id}/", pht('Modules'), 'fa-database');
-    $nav->addIcon("repositories/{$id}/", pht('Repositories'), 'fa-database');
-    $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
+    if (!$hss){
+      $nav->addIcon("feed/{$id}/", pht('Feed'), 'fa-newspaper-o');
+      $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');    
+      $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
+    }
+    else{
+      $nav->addIcon("report/{$id}/", pht('Report'), 'fa-line-chart');
+      //TODO: move it to event listener
+      $nav->addIcon("modules/{$id}/", pht('Modules'), 'fa-sitemap');
+      $nav->addIcon("repositories/{$id}/", pht('Repositories'), 'fa-database');
+      $nav->addIcon("feed/{$id}/", pht('Feed'), 'fa-newspaper-o');
+      $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');    
+      $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
+    }
 
     return $nav;
   }
