@@ -71,7 +71,7 @@ final class PhabricatorPonderApplication extends PhabricatorApplication {
           => 'PonderQuestionHistoryController',
         'preview/'
           => 'PhabricatorMarkupPreviewController',
-        'question/(?P<status>open|close)/(?P<id>[1-9]\d*)/'
+        'question/status/(?P<id>[1-9]\d*)/'
           => 'PonderQuestionStatusController',
         'vote/' => 'PonderVoteSaveController',
       ),
@@ -93,11 +93,12 @@ final class PhabricatorPonderApplication extends PhabricatorApplication {
 
   protected function getCustomCapabilities() {
     return array(
-      PonderQuestionDefaultViewCapability::CAPABILITY => array(
+      PonderDefaultViewCapability::CAPABILITY => array(
         'template' => PonderQuestionPHIDType::TYPECONST,
         'capability' => PhabricatorPolicyCapability::CAN_VIEW,
       ),
-      PonderQuestionDefaultEditCapability::CAPABILITY => array(
+      PonderModerateCapability::CAPABILITY => array(
+        'default' => PhabricatorPolicies::POLICY_ADMIN,
         'template' => PonderQuestionPHIDType::TYPECONST,
         'capability' => PhabricatorPolicyCapability::CAN_EDIT,
       ),
