@@ -97,7 +97,7 @@ abstract class PhabricatorProjectController extends PhabricatorController {
       //TODO: move it to event listener
       $nav->addIcon("modules/{$id}/", pht('Modules'), 'fa-sitemap');
       $nav->addIcon("repositories/{$id}/", pht('Repositories'), 'fa-database');
-      $nav->addIcon("feed/{$id}/", pht('Feed'), 'fa-newspaper-o');
+      $nav->addIcon("activities/{$id}/", pht('Feed'), 'fa-newspaper-o');
       $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');    
       $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
     }
