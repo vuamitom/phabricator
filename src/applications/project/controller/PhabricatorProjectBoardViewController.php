@@ -370,6 +370,12 @@ final class PhabricatorProjectBoardViewController
       ->addActionLink($manage_menu)
       ->setPolicyObject($project);
 
+    // add subproject link if necessy
+    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
+    if ($hss){
+      //do smth
+    }
+
     $header_box = id(new PHUIBoxView())
       ->appendChild($header)
       ->addClass('project-board-header');

@@ -66,14 +66,23 @@ abstract class PhabricatorProjectController extends PhabricatorController {
       $board_icon = 'fa-columns grey';
     }
 
+    // check if project is module/sub project
+    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
+    $parentProject = false;
+    if ($hss){
+      $parentProject = ProjectHelper::getParentProject($project, $this->getViewer());
+    }
+
     $nav = new AphrontSideNavFilterView();
     $nav->setIconNav(true);
     $nav->setBaseURI(new PhutilURI($this->getApplicationURI()));
-    $nav->addIcon("profile/{$id}/", $name, null, $picture);    
+    if (!$parentProject){
+      $nav->addIcon("profile/{$id}/", $name, null, $picture);    
+    }
     $nav->addIcon("board/{$id}/", pht('Workboard'), $board_icon);
 
     $class = 'PhabricatorManiphestApplication';
-    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
+    
     if (PhabricatorApplication::isClassInstalledForViewer($class, $viewer)) {
       $phid = $project->getPHID();
       $query_uri = urisprintf(
@@ -83,7 +92,7 @@ abstract class PhabricatorProjectController extends PhabricatorController {
         $nav->addIcon(null, pht('Open Tasks'), 'fa-anchor', null, $query_uri);
       }
       else{
-        $nav->addIcon("maniphest/{$id}", pht('Open Tasks'), 'fa-anchor'); 
+        $nav->addIcon("maniphest/{$id}/", pht('Open Tasks'), 'fa-anchor'); 
       }
     }
 
@@ -99,7 +108,13 @@ abstract class PhabricatorProjectController extends PhabricatorController {
       $nav->addIcon("repositories/{$id}/", pht('Repositories'), 'fa-database');
       $nav->addIcon("activities/{$id}/", pht('Feed'), 'fa-newspaper-o');
       $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');    
-      $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
+      if ($parentProject){
+        $parent_id = $parentProject->getID();
+        $nav->addIcon("editmodule/{$parent_id}/{$id}", pht('Edit Details'), 'fa-pencil');
+      }
+      else{
+        $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
+      }
     }
 
     return $nav;
