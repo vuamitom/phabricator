@@ -52,6 +52,19 @@ final class ManiphestTaskEditController extends ManiphestController {
 
       // These allow task creation with defaults.
       if (!$request->isFormPost()) {
+        $projectIds = $request->getArr('projectIds');
+        if ($projectIds && count($projectIds) > 0){
+          $projects = id(new PhabricatorProjectQuery())
+            ->setViewer($this->getViewer())
+            ->withIDs($projectIds)
+            ->execute(); 
+          $pphids = array(); 
+          foreach ($projects as $key => $value) {
+            $pphids[] = $value->getPHID();
+          }
+          $task->attachProjectPHIDs($pphids);
+        }
+
         $task->setTitle($request->getStr('title'));
 
         if ($can_edit_projects) {

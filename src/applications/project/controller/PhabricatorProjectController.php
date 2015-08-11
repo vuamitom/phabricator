@@ -118,7 +118,7 @@ abstract class PhabricatorProjectController extends PhabricatorController {
       $nav->addIcon("activities/{$id}/", pht('Feed'), 'fa-newspaper-o');      
       if ($parentProject){
         $parent_id = $parentProject->getID();
-        $nav->addIcon("editmodule/{$parent_id}/{$id}", pht('Edit Details'), 'fa-pencil');
+        $nav->addIcon("modules/edit/{$parent_id}/{$id}", pht('Edit Details'), 'fa-pencil');
       }
       else{
         $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
