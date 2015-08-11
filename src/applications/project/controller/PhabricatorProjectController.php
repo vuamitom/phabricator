@@ -3,6 +3,15 @@
 abstract class PhabricatorProjectController extends PhabricatorController {
 
   private $project;
+  protected $parentProject; 
+
+  protected function getParentProject(){
+    if ($this->parentProject == NULL){
+      $this->parentProject = ProjectHelper::getParentProject($this->project, $this->getViewer());
+      $this->parentProject = $this->parentProject ? $this->parentProject : false; 
+    }
+    return $this->parentProject;
+  }
 
   protected function setProject(PhabricatorProject $project) {
     $this->project = $project;
@@ -70,7 +79,7 @@ abstract class PhabricatorProjectController extends PhabricatorController {
     $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
     $parentProject = false;
     if ($hss){
-      $parentProject = ProjectHelper::getParentProject($project, $this->getViewer());
+      $parentProject = $this->getParentProject();
     }
 
     $nav = new AphrontSideNavFilterView();
@@ -106,8 +115,7 @@ abstract class PhabricatorProjectController extends PhabricatorController {
       //TODO: move it to event listener
       $nav->addIcon("modules/{$id}/", pht('Modules'), 'fa-sitemap');
       $nav->addIcon("repositories/{$id}/", pht('Repositories'), 'fa-database');
-      $nav->addIcon("activities/{$id}/", pht('Feed'), 'fa-newspaper-o');
-      $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');    
+      $nav->addIcon("activities/{$id}/", pht('Feed'), 'fa-newspaper-o');      
       if ($parentProject){
         $parent_id = $parentProject->getID();
         $nav->addIcon("editmodule/{$parent_id}/{$id}", pht('Edit Details'), 'fa-pencil');

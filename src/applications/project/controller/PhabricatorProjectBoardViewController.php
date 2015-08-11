@@ -354,10 +354,22 @@ final class PhabricatorProjectBoardViewController
 
     $manage_menu = $this->buildManageMenu($project, $show_hidden);
 
+    // add subproject link if necessy
+    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
+    $parentProject = false; 
+    $href = $this->getApplicationURI('profile/'.$project->getID().'/');
+    if ($hss){
+      //do smth
+      $parentProject = $this->getParentProject();      
+      if($parentProject){
+        $href = '#';
+      }
+    }
+
     $header_link = phutil_tag(
       'a',
       array(
-        'href' => $this->getApplicationURI('profile/'.$project->getID().'/'),
+        'href' => $href,
       ),
       $project->getName());
 
@@ -370,11 +382,10 @@ final class PhabricatorProjectBoardViewController
       ->addActionLink($manage_menu)
       ->setPolicyObject($project);
 
-    // add subproject link if necessy
-    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
-    if ($hss){
-      //do smth
+    if($parentProject){
+      $header->setSubHeader($this->buildParentProjectView());
     }
+
 
     $header_box = id(new PHUIBoxView())
       ->appendChild($header)
@@ -751,5 +762,29 @@ final class PhabricatorProjectBoardViewController
 
     return $base;
   }
+
+  protected function buildParentProjectView(){
+      if($this->parentProject){
+
+        $icon = id(new PHUIIconView())
+        ->setIconFont('fa-level-up bluegrey');
+
+      $link = javelin_tag(
+        'a',
+        array(
+          'class' => '',
+          'href' => '/project/maniphest/'.$this->parentProject->getId(),
+          'sigil' => '',
+        ),
+        $this->parentProject->getName());
+
+      return phutil_tag(
+        'span',
+        array(
+          'class' => '',
+        ),
+        array($icon, $link));    
+      }
+    }
 
 }
