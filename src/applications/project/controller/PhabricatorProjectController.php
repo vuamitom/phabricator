@@ -121,6 +121,7 @@ abstract class PhabricatorProjectController extends PhabricatorController {
         $nav->addIcon("modules/edit/{$parent_id}/{$id}", pht('Edit Details'), 'fa-pencil');
       }
       else{
+        $nav->addIcon("members/{$id}/", pht('Members'), 'fa-group');    
         $nav->addIcon("details/{$id}/", pht('Edit Details'), 'fa-pencil');
       }
     }
