@@ -51,28 +51,7 @@ final class ManiphestTaskEditController extends ManiphestController {
       $can_edit_status = false;
 
       // These allow task creation with defaults.
-      if (!$request->isFormPost()) {
-        $projectIds = $request->getArr('projectIds');
-        if ($projectIds && count($projectIds) > 0){
-          $projects = id(new PhabricatorProjectQuery())
-            ->setViewer($this->getViewer())
-            ->withIDs($projectIds)
-            ->execute(); 
-          $pphids = array(); 
-          foreach ($projects as $key => $value) {
-            $pphids[] = $value->getPHID();
-          }
-          $task->attachProjectPHIDs($pphids);
-
-          // set project view and join policy 
-          foreach ($projects as $key => $value) {
-            # code...           
-            $task->setViewPolicy($value->getViewPolicy());
-            $task->setEditPolicy($value->getViewPolicy());
-            break;
-          }
-          
-        }
+      if (!$request->isFormPost()) {        
 
         $task->setTitle($request->getStr('title'));
 
@@ -104,8 +83,17 @@ final class ManiphestTaskEditController extends ManiphestController {
             $default_projects = mpull($default_projects, 'getPHID');
 
             if ($default_projects) {
-              $task->attachProjectPHIDs($default_projects);
-            }
+              $task->attachProjectPHIDs($default_projects);              
+              $projectObjs = id(new PhabricatorProjectQuery())
+                ->setViewer($this->getViewer())
+                ->withPHIDs($default_projects)
+                ->execute(); 
+              foreach ($projectObjs as $key => $value) {
+                $task->setViewPolicy($value->getViewPolicy());
+                $task->setEditPolicy($value->getViewPolicy());
+                break;
+              }
+            }            
           }
         }
 
