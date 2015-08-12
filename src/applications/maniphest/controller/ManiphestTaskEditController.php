@@ -63,6 +63,15 @@ final class ManiphestTaskEditController extends ManiphestController {
             $pphids[] = $value->getPHID();
           }
           $task->attachProjectPHIDs($pphids);
+
+          // set project view and join policy 
+          foreach ($projects as $key => $value) {
+            # code...           
+            $task->setViewPolicy($value->getViewPolicy());
+            $task->setEditPolicy($value->getViewPolicy());
+            break;
+          }
+          
         }
 
         $task->setTitle($request->getStr('title'));
