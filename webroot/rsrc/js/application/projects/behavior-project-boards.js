@@ -277,12 +277,16 @@ JX.behavior('project-boards', function(config, statics) {
         // We want the 'boards-dropdown-menu' behavior to see this event and
         // close the dropdown, but don't want to follow the link.
         e.prevent();
-
+        var projectPHIDs = statics.projectPHID; 
+        if (config.parentProjectPHID){
+          projectPHIDs += ',' + config.parentProjectPHID; 
+        }
+        
         var column_phid = e.getNodeData('column-add-task').columnPHID;
         var request_data = {
           responseType: 'card',
           columnPHID: column_phid,
-          projects: statics.projectPHID,
+          projects: projectPHIDs,
           order: statics.order
         };
         var cols = getcolumns();

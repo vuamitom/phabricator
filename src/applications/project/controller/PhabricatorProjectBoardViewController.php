@@ -265,12 +265,22 @@ final class PhabricatorProjectBoardViewController
       ->setUser($viewer)
       ->setID($board_id);
 
+    // add subproject link if necessy
+    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
+    $parentProject = false; 
+    
+    if ($hss){
+      //do smth
+      $parentProject = $this->getParentProject();            
+    }
+    
     $behavior_config = array(
       'boardID' => $board_id,
       'projectPHID' => $project->getPHID(),
       'moveURI' => $this->getApplicationURI('move/'.$project->getID().'/'),
       'createURI' => '/maniphest/task/create/',
       'order' => $this->sortKey,
+      'parentProjectPHID' => $parentProject ? $parentProject->getPHID() : false
     );
     $this->initBehavior(
       'project-boards',
@@ -354,16 +364,10 @@ final class PhabricatorProjectBoardViewController
 
     $manage_menu = $this->buildManageMenu($project, $show_hidden);
 
-    // add subproject link if necessy
-    $hss = PhabricatorEnv::getEnvConfig('hss.enable-extension');
-    $parentProject = false; 
+    
     $href = $this->getApplicationURI('profile/'.$project->getID().'/');
-    if ($hss){
-      //do smth
-      $parentProject = $this->getParentProject();      
-      if($parentProject){
-        $href = '#';
-      }
+    if($parentProject){
+      $href = '#';
     }
 
     $header_link = phutil_tag(
