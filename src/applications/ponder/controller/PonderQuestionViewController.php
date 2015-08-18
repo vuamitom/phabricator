@@ -171,20 +171,26 @@ final class PonderQuestionViewController extends PonderController {
 
     $view->invokeWillRenderEvent();
 
-    $view->addSectionHeader(pht('Question'));
-    $view->addTextContent(
-      array(
-        phutil_tag(
-          'div',
-          array(
-            'class' => 'phabricator-remarkup',
-          ),
-          PhabricatorMarkupEngine::renderOneObject(
+    $details = PhabricatorMarkupEngine::renderOneObject(
             $question,
             $question->getMarkupField(),
-            $viewer)),
-      ));
+            $viewer);
 
+    if ($details) {
+      $view->addSectionHeader(
+        pht('Details'),
+        PHUIPropertyListView::ICON_SUMMARY);
+
+      $view->addTextContent(
+        array(
+          phutil_tag(
+            'div',
+            array(
+              'class' => 'phabricator-remarkup',
+            ),
+            $details),
+        ));
+    }
 
     return $view;
   }
@@ -217,16 +223,21 @@ final class PonderQuestionViewController extends PonderController {
     $engine->process();
 
     $xaction_groups = mgroup($xactions, 'getObjectPHID');
+    $author_phids = mpull($answers, 'getAuthorPHID');
+    $handles = $this->loadViewerHandles($author_phids);
+    $answers_sort = array_reverse(msort($answers, 'getVoteCount'));
 
     $view = array();
-    foreach ($answers as $answer) {
+    foreach ($answers_sort as $answer) {
       $xactions = idx($xaction_groups, $answer->getPHID(), array());
       $id = $answer->getID();
+      $handle = $handles[$answer->getAuthorPHID()];
 
       $view[] = id(new PonderAnswerView())
         ->setUser($viewer)
         ->setAnswer($answer)
         ->setTransactions($xactions)
+        ->setHandle($handle)
         ->setMarkupEngine($engine);
 
     }

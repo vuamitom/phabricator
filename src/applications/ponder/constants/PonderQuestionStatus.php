@@ -86,5 +86,4 @@ final class PonderQuestionStatus extends PonderConstants {
     );
   }
 
-
 }
