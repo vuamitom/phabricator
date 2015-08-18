@@ -5,6 +5,7 @@ final class PonderAnswerView extends AphrontTagView {
   private $answer;
   private $transactions;
   private $engine;
+  private $handle;
 
   public function setAnswer($answer) {
     $this->answer = $answer;
@@ -21,6 +22,11 @@ final class PonderAnswerView extends AphrontTagView {
     return $this;
   }
 
+  public function setHandle($handle) {
+    $this->handle = $handle;
+    return $this;
+  }
+
   protected function getTagAttributes() {
     return array(
       'class' => 'ponder-answer-view',
@@ -31,8 +37,38 @@ final class PonderAnswerView extends AphrontTagView {
     require_celerity_resource('ponder-view-css');
     $answer = $this->answer;
     $viewer = $this->getUser();
+    $status = $answer->getStatus();
     $author_phid = $answer->getAuthorPHID();
     $actions = $this->buildAnswerActions();
+    $handle = $this->handle;
+    $id = $answer->getID();
+
+    if ($status == PonderAnswerStatus::ANSWER_STATUS_HIDDEN) {
+      $can_edit = PhabricatorPolicyFilter::hasCapability(
+        $viewer,
+        $answer,
+        PhabricatorPolicyCapability::CAN_EDIT);
+
+      $message = array();
+      $message[] = phutil_tag(
+        'em',
+        array(),
+        pht('This answer has been hidden.'));
+
+      if ($can_edit) {
+        $message[] = phutil_tag(
+          'a',
+          array(
+            'href' => "/ponder/answer/edit/{$id}/",
+          ),
+          pht('Edit Answer'));
+      }
+      $message = phutil_implode_html(' ', $message);
+
+      return id(new PHUIInfoView())
+        ->setSeverity(PHUIInfoView::SEVERITY_NODATA)
+        ->appendChild($message);
+    }
 
     $action_button = id(new PHUIButtonView())
       ->setTag('a')
@@ -44,8 +80,10 @@ final class PonderAnswerView extends AphrontTagView {
     $header = id(new PHUIHeaderView())
       ->setUser($viewer)
       ->setEpoch($answer->getDateCreated())
-      ->setHeader($viewer->renderHandle($author_phid))
-      ->addActionLink($action_button);
+      ->setHeader($handle->getName())
+      ->addActionLink($action_button)
+      ->setImage($handle->getImageURI())
+      ->setImageURL($handle->getURI());
 
     $content = phutil_tag(
       'div',
@@ -57,7 +95,6 @@ final class PonderAnswerView extends AphrontTagView {
         $answer->getMarkupField(),
         $viewer));
 
-    $id = $answer->getID();
     $anchor = id(new PhabricatorAnchorView())
         ->setAnchorName("A$id");
 
@@ -67,17 +104,19 @@ final class PonderAnswerView extends AphrontTagView {
       ->setCount(count($this->transactions));
 
     $votes = $answer->getVoteCount();
-    if ($votes) {
-      $icon = id(new PHUIIconView())
-        ->setIconFont('fa-thumbs-up');
-      $helpful = phutil_tag(
-        'span',
-        array(
-          'class' => 'ponder-footer-action',
-        ),
-        array($votes, $icon));
-      $footer->addAction($helpful);
+    $vote_class = null;
+    if ($votes > 0) {
+      $vote_class = 'ponder-footer-action-helpful';
     }
+    $icon = id(new PHUIIconView())
+      ->setIconFont('fa-thumbs-up msr');
+    $helpful = phutil_tag(
+      'span',
+      array(
+        'class' => 'ponder-footer-action '.$vote_class,
+      ),
+      array($icon, $votes));
+    $footer->addAction($helpful);
 
     $answer_view = id(new PHUIObjectBoxView())
       ->setHeader($header)
