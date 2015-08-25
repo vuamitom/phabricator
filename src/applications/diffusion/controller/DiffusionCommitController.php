@@ -1089,6 +1089,7 @@ final class DiffusionCommitController extends DiffusionController {
       if ($viewer->getPHID()) {
         $packages = id(new PhabricatorOwnersPackageQuery())
           ->setViewer($viewer)
+          ->withStatuses(array(PhabricatorOwnersPackage::STATUS_ACTIVE))
           ->withAuthorityPHIDs(array($viewer->getPHID()))
           ->execute();
         $toc_view->setAuthorityPackages($packages);
@@ -1099,6 +1100,7 @@ final class DiffusionCommitController extends DiffusionController {
 
       $control_query = id(new PhabricatorOwnersPackageQuery())
         ->setViewer($viewer)
+        ->withStatuses(array(PhabricatorOwnersPackage::STATUS_ACTIVE))
         ->withControl($repository_phid, mpull($changesets, 'getFilename'));
       $control_query->execute();
     }
@@ -1121,12 +1123,10 @@ final class DiffusionCommitController extends DiffusionController {
           ));
 
       if ($have_owners) {
-        $package = $control_query->getControllingPackageForPath(
+        $packages = $control_query->getControllingPackagesForPath(
           $repository_phid,
           $changeset->getFilename());
-        if ($package) {
-          $item->setPackage($package);
-        }
+        $item->setPackages($packages);
       }
 
       $toc_view->addItem($item);
