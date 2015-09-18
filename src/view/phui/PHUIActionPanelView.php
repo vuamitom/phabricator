@@ -10,12 +10,14 @@ final class PHUIActionPanelView extends AphrontTagView {
   private $state;
   private $status;
 
-  const STATE_WARN = 'phui-action-panel-warn';
-  const STATE_INFO = 'phui-action-panel-info';
-  const STATE_ERROR = 'phui-action-panel-error';
-  const STATE_SUCCESS = 'phui-action-panel-success';
-  const STATE_PROGRESS = 'phui-action-panel-progress';
-  const STATE_NONE = 'phui-action-panel-none';
+  const COLOR_RED = 'phui-action-panel-red';
+  const COLOR_ORANGE = 'phui-action-panel-orange';
+  const COLOR_YELLOW = 'phui-action-panel-yellow';
+  const COLOR_GREEN = 'phui-action-panel-green';
+  const COLOR_BLUE = 'phui-action-panel-blue';
+  const COLOR_INDIGO = 'phui-action-panel-indigo';
+  const COLOR_VIOLET = 'phui-action-panel-violet';
+  const COLOR_PINK = 'phui-action-panel-pink';
 
   public function setHref($href) {
     $this->href = $href;
@@ -89,21 +91,12 @@ final class PHUIActionPanelView extends AphrontTagView {
 
     $header = null;
     if ($this->header) {
-      $header = $this->header;
-      if ($this->href) {
-        $header = phutil_tag(
-          'a',
-          array(
-            'href' => $this->href,
-          ),
-          $this->header);
-      }
       $header = phutil_tag(
-        'div',
+        'span',
         array(
           'class' => 'phui-action-panel-header',
         ),
-        $header);
+        $this->header);
     }
 
     $subheader = null;
@@ -133,15 +126,13 @@ final class PHUIActionPanelView extends AphrontTagView {
       ),
       $row);
 
-    $content = phutil_tag(
+    return phutil_tag(
       'a',
       array(
         'href' => $this->href,
         'class' => 'phui-action-panel-hitarea',
       ),
-      $table);
-
-    return array($header, $content);
+      array($header, $table));
 
   }
 
