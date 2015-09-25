@@ -3,7 +3,7 @@
 final class DrydockLease extends DrydockDAO
   implements PhabricatorPolicyInterface {
 
-  protected $resourceID;
+  protected $resourcePHID;
   protected $resourceType;
   protected $until;
   protected $ownerPHID;
@@ -60,17 +60,15 @@ final class DrydockLease extends DrydockDAO
         'attributes'    => self::SERIALIZATION_JSON,
       ),
       self::CONFIG_COLUMN_SCHEMA => array(
-        'status' => 'uint32',
+        'status' => 'text32',
         'until' => 'epoch?',
         'resourceType' => 'text128',
         'ownerPHID' => 'phid?',
-        'resourceID' => 'id?',
+        'resourcePHID' => 'phid?',
       ),
       self::CONFIG_KEY_SCHEMA => array(
-        'key_phid' => null,
-        'phid' => array(
-          'columns' => array('phid'),
-          'unique' => true,
+        'key_resource' => array(
+          'columns' => array('resourcePHID', 'status'),
         ),
       ),
     ) + parent::getConfiguration();
@@ -128,22 +126,23 @@ final class DrydockLease extends DrydockDAO
     return $this;
   }
 
-  public function isActive() {
-    switch ($this->status) {
+  public function isActivating() {
+    switch ($this->getStatus()) {
+      case DrydockLeaseStatus::STATUS_PENDING:
       case DrydockLeaseStatus::STATUS_ACQUIRED:
-      case DrydockLeaseStatus::STATUS_ACTIVE:
         return true;
     }
+
     return false;
   }
 
-  private function assertActive() {
-    if (!$this->isActive()) {
-      throw new Exception(
-        pht(
-          'Lease is not active! You can not interact with resources through '.
-          'an inactive lease.'));
+  public function isActive() {
+    switch ($this->getStatus()) {
+      case DrydockLeaseStatus::STATUS_ACTIVE:
+        return true;
     }
+
+    return false;
   }
 
   public function waitUntilActive() {
@@ -219,7 +218,7 @@ final class DrydockLease extends DrydockDAO
     $this->openTransaction();
 
       $this
-        ->setResourceID($resource->getID())
+        ->setResourcePHID($resource->getPHID())
         ->setStatus($new_status)
         ->save();
 
