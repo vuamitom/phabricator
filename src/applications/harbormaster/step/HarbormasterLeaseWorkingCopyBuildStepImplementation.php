@@ -45,14 +45,14 @@ final class HarbormasterLeaseWorkingCopyBuildStepImplementation
         ->setResourceType($working_copy_type)
         ->setOwnerPHID($build_target->getPHID());
 
-      $variables = $build_target->getVariables();
+      $map = $this->buildRepositoryMap($build_target);
 
-      $repository_phid = idx($variables, 'repository.phid');
-      $commit = idx($variables, 'repository.commit');
+      $lease->setAttribute('repositories.map', $map);
 
-      $lease
-        ->setAttribute('repositoryPHID', $repository_phid)
-        ->setAttribute('commit', $commit);
+      $task_id = $this->getCurrentWorkerTaskID();
+      if ($task_id) {
+        $lease->setAwakenTaskIDs(array($task_id));
+      }
 
       $lease->queueForActivation();
 
@@ -88,7 +88,7 @@ final class HarbormasterLeaseWorkingCopyBuildStepImplementation
       array(
         'name' => pht('Working Copy'),
         'key' => $this->getSetting('name'),
-        'type' => HarbormasterHostArtifact::ARTIFACTCONST,
+        'type' => HarbormasterWorkingCopyArtifact::ARTIFACTCONST,
       ),
     );
   }
@@ -100,7 +100,61 @@ final class HarbormasterLeaseWorkingCopyBuildStepImplementation
         'type' => 'text',
         'required' => true,
       ),
+      'repositoryPHIDs' => array(
+        'name' => pht('Also Clone'),
+        'type' => 'datasource',
+        'datasource.class' => 'DiffusionRepositoryDatasource',
+      ),
     );
+  }
+
+  private function buildRepositoryMap(HarbormasterBuildTarget $build_target) {
+    $viewer = PhabricatorUser::getOmnipotentUser();
+    $variables = $build_target->getVariables();
+
+    $repository_phid = idx($variables, 'repository.phid');
+    $also_phids = $build_target->getFieldValue('repositoryPHIDs');
+
+    $all_phids = $also_phids;
+    $all_phids[] = $repository_phid;
+
+    $repositories = id(new PhabricatorRepositoryQuery())
+      ->setViewer($viewer)
+      ->withPHIDs($all_phids)
+      ->execute();
+    $repositories = mpull($repositories, null, 'getPHID');
+
+    foreach ($all_phids as $phid) {
+      if (empty($repositories[$phid])) {
+        throw new PhabricatorWorkerPermanentFailureException(
+          pht(
+            'Unable to load repository with PHID "%s".',
+            $phid));
+      }
+    }
+
+    $commit = idx($variables, 'repository.commit');
+
+    $map = array();
+
+    foreach ($also_phids as $also_phid) {
+      $also_repo = $repositories[$also_phid];
+      $map[$also_repo->getCloneName()] = array(
+        'phid' => $also_repo->getPHID(),
+        'branch' => 'master',
+      );
+    }
+
+    $repository = $repositories[$repository_phid];
+
+    $directory = $repository->getCloneName();
+    $map[$directory] = array(
+      'phid' => $repository->getPHID(),
+      'commit' => $commit,
+      'default' => true,
+    );
+
+    return $map;
   }
 
 }
