@@ -7,7 +7,7 @@ final class DrydockResource extends DrydockDAO
   protected $phid;
   protected $blueprintPHID;
   protected $status;
-
+  protected $until;
   protected $type;
   protected $name;
   protected $attributes   = array();
@@ -15,6 +15,8 @@ final class DrydockResource extends DrydockDAO
   protected $ownerPHID;
 
   private $blueprint = self::ATTACHABLE;
+  private $unconsumedCommands = self::ATTACHABLE;
+
   private $isAllocated = false;
   private $isActivated = false;
   private $activateWhenAllocated = false;
@@ -32,6 +34,7 @@ final class DrydockResource extends DrydockDAO
         'ownerPHID' => 'phid?',
         'status' => 'text32',
         'type' => 'text64',
+        'until' => 'epoch?',
       ),
       self::CONFIG_KEY_SCHEMA => array(
         'key_type' => array(
@@ -76,6 +79,25 @@ final class DrydockResource extends DrydockDAO
   public function attachBlueprint(DrydockBlueprint $blueprint) {
     $this->blueprint = $blueprint;
     return $this;
+  }
+
+  public function getUnconsumedCommands() {
+    return $this->assertAttached($this->unconsumedCommands);
+  }
+
+  public function attachUnconsumedCommands(array $commands) {
+    $this->unconsumedCommands = $commands;
+    return $this;
+  }
+
+  public function isReleasing() {
+    foreach ($this->getUnconsumedCommands() as $command) {
+      if ($command->getCommand() == DrydockCommand::COMMAND_RELEASE) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   public function setActivateWhenAllocated($activate) {
@@ -126,6 +148,10 @@ final class DrydockResource extends DrydockDAO
 
     $this->isAllocated = true;
 
+    if ($new_status == DrydockResourceStatus::STATUS_ACTIVE) {
+      $this->didActivate();
+    }
+
     return $this;
   }
 
@@ -164,6 +190,8 @@ final class DrydockResource extends DrydockDAO
 
     $this->isActivated = true;
 
+    $this->didActivate();
+
     return $this;
   }
 
@@ -181,14 +209,16 @@ final class DrydockResource extends DrydockDAO
     }
   }
 
-  public function scheduleUpdate() {
+  public function scheduleUpdate($epoch = null) {
     PhabricatorWorker::scheduleTask(
       'DrydockResourceUpdateWorker',
       array(
         'resourcePHID' => $this->getPHID(),
+        'isExpireTask' => ($epoch !== null),
       ),
       array(
         'objectPHID' => $this->getPHID(),
+        'delayUntil' => ($epoch ? (int)$epoch : null),
       ));
   }
 
@@ -208,6 +238,20 @@ final class DrydockResource extends DrydockDAO
 
     if ($need_update) {
       $this->scheduleUpdate();
+    }
+
+    $expires = $this->getUntil();
+    if ($expires) {
+      $this->scheduleUpdate($expires);
+    }
+  }
+
+  public function canUpdate() {
+    switch ($this->getStatus()) {
+      case DrydockResourceStatus::STATUS_ACTIVE:
+        return true;
+      default:
+        return false;
     }
   }
 
