@@ -135,14 +135,9 @@ final class DrydockLease extends DrydockDAO
       ->setStatus(DrydockLeaseStatus::STATUS_PENDING)
       ->save();
 
-    $task = PhabricatorWorker::scheduleTask(
-      'DrydockAllocatorWorker',
-      array(
-        'leasePHID' => $this->getPHID(),
-      ),
-      array(
-        'objectPHID' => $this->getPHID(),
-      ));
+    $this->scheduleUpdate();
+
+    $this->logEvent(DrydockLeaseQueuedLogType::LOGCONST);
 
     return $this;
   }
@@ -237,18 +232,36 @@ final class DrydockLease extends DrydockDAO
     }
 
     $this->openTransaction();
-
-      $this
-        ->setResourcePHID($resource->getPHID())
-        ->setStatus($new_status)
-        ->save();
-
+    try {
       DrydockSlotLock::acquireLocks($this->getPHID(), $this->slotLocks);
       $this->slotLocks = array();
+    } catch (DrydockSlotLockException $ex) {
+      $this->killTransaction();
 
+      $this->logEvent(
+        DrydockSlotLockFailureLogType::LOGCONST,
+        array(
+          'locks' => $ex->getLockMap(),
+        ));
+
+      throw $ex;
+    }
+
+    try {
+      $this
+        ->setResourcePHID($resource->getPHID())
+        ->attachResource($resource)
+        ->setStatus($new_status)
+        ->save();
+    } catch (Exception $ex) {
+      $this->killTransaction();
+      throw $ex;
+    }
     $this->saveTransaction();
 
     $this->isAcquired = true;
+
+    $this->logEvent(DrydockLeaseAcquiredLogType::LOGCONST);
 
     if ($new_status == DrydockLeaseStatus::STATUS_ACTIVE) {
       $this->didActivate();
@@ -316,12 +329,13 @@ final class DrydockLease extends DrydockDAO
     }
   }
 
-  public function canUpdate() {
+  public function canReceiveCommands() {
     switch ($this->getStatus()) {
-      case DrydockLeaseStatus::STATUS_ACTIVE:
-        return true;
-      default:
+      case DrydockLeaseStatus::STATUS_RELEASED:
+      case DrydockLeaseStatus::STATUS_DESTROYED:
         return false;
+      default:
+        return true;
     }
   }
 
@@ -347,6 +361,8 @@ final class DrydockLease extends DrydockDAO
     $viewer = PhabricatorUser::getOmnipotentUser();
     $need_update = false;
 
+    $this->logEvent(DrydockLeaseActivatedLogType::LOGCONST);
+
     $commands = id(new DrydockCommandQuery())
       ->setViewer($viewer)
       ->withTargetPHIDs(array($this->getPHID()))
@@ -370,6 +386,26 @@ final class DrydockLease extends DrydockDAO
       PhabricatorWorker::awakenTaskIDs($awaken_ids);
     }
   }
+
+  public function logEvent($type, array $data = array()) {
+    $log = id(new DrydockLog())
+      ->setEpoch(PhabricatorTime::getNow())
+      ->setType($type)
+      ->setData($data);
+
+    $log->setLeasePHID($this->getPHID());
+
+    $resource_phid = $this->getResourcePHID();
+    if ($resource_phid) {
+      $resource = $this->getResource();
+
+      $log->setResourcePHID($resource->getPHID());
+      $log->setBlueprintPHID($resource->getBlueprintPHID());
+    }
+
+    return $log->save();
+  }
+
 
 
 /* -(  PhabricatorPolicyInterface  )----------------------------------------- */
