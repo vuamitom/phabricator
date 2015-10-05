@@ -97,9 +97,7 @@ final class DrydockWorkingCopyBlueprintImplementation
     DrydockBlueprint $blueprint,
     DrydockLease $lease) {
 
-    $resource = $this->newResourceTemplate(
-      $blueprint,
-      pht('Working Copy'));
+    $resource = $this->newResourceTemplate($blueprint);
 
     $resource_phid = $resource->getPHID();
 
@@ -172,16 +170,25 @@ final class DrydockWorkingCopyBlueprintImplementation
     // Destroy the lease on the host.
     $lease->releaseOnDestruction();
 
-    // Destroy the working copy on disk.
-    $command_type = DrydockCommandInterface::INTERFACE_TYPE;
-    $interface = $lease->getInterface($command_type);
+    if ($lease->isActive()) {
+      // Destroy the working copy on disk.
+      $command_type = DrydockCommandInterface::INTERFACE_TYPE;
+      $interface = $lease->getInterface($command_type);
 
-    $root_key = 'workingcopy.root';
-    $root = $resource->getAttribute($root_key);
-    if (strlen($root)) {
-      $interface->execx('rm -rf -- %s', $root);
+      $root_key = 'workingcopy.root';
+      $root = $resource->getAttribute($root_key);
+      if (strlen($root)) {
+        $interface->execx('rm -rf -- %s', $root);
+      }
     }
   }
+
+  public function getResourceName(
+    DrydockBlueprint $blueprint,
+    DrydockResource $resource) {
+    return pht('Working Copy');
+  }
+
 
   public function activateLease(
     DrydockBlueprint $blueprint,
@@ -209,6 +216,8 @@ final class DrydockWorkingCopyBlueprintImplementation
       $commit = idx($spec, 'commit');
       $branch = idx($spec, 'branch');
 
+      $ref = idx($spec, 'ref');
+
       if ($commit !== null) {
         $cmd[] = 'git reset --hard %s';
         $arg[] = $commit;
@@ -218,6 +227,20 @@ final class DrydockWorkingCopyBlueprintImplementation
 
         $cmd[] = 'git reset --hard origin/%s';
         $arg[] = $branch;
+      } else if ($ref) {
+        $ref_uri = $ref['uri'];
+        $ref_ref = $ref['ref'];
+
+        $cmd[] = 'git fetch --no-tags -- %s +%s:%s';
+        $arg[] = $ref_uri;
+        $arg[] = $ref_ref;
+        $arg[] = $ref_ref;
+
+        $cmd[] = 'git checkout %s';
+        $arg[] = $ref_ref;
+
+        $cmd[] = 'git reset --hard %s';
+        $arg[] = $ref_ref;
       } else {
         $cmd[] = 'git reset --hard HEAD';
       }
@@ -295,7 +318,6 @@ final class DrydockWorkingCopyBlueprintImplementation
 
     foreach ($phids as $phid) {
       if (empty($repositories[$phid])) {
-        // TODO: Permanent failure.
         throw new Exception(
           pht(
             'Repository PHID "%s" does not exist.',
@@ -304,12 +326,16 @@ final class DrydockWorkingCopyBlueprintImplementation
     }
 
     foreach ($repositories as $repository) {
-      switch ($repository->getVersionControlSystem()) {
+      $repository_vcs = $repository->getVersionControlSystem();
+      switch ($repository_vcs) {
         case PhabricatorRepositoryType::REPOSITORY_TYPE_GIT:
           break;
         default:
-          // TODO: Permanent failure.
-          throw new Exception(pht('Unsupported VCS!'));
+          throw new Exception(
+            pht(
+              'Repository ("%s") has unsupported VCS ("%s").',
+              $repository->getPHID(),
+              $repository_vcs));
       }
     }
 
@@ -326,8 +352,10 @@ final class DrydockWorkingCopyBlueprintImplementation
       ->withPHIDs(array($lease_phid))
       ->executeOne();
     if (!$lease) {
-      // TODO: Permanent failure.
-      throw new Exception(pht('Unable to load lease "%s".', $lease_phid));
+      throw new Exception(
+        pht(
+          'Unable to load lease ("%s").',
+          $lease_phid));
     }
 
     return $lease;
